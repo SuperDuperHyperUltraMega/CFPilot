@@ -1,0 +1,39 @@
+name: Build macOS App
+
+on:
+  workflow_dispatch: # Lets you trigger the build manually with a button click
+
+jobs:
+  build-macos:
+    runs-on: macos-latest # Uses GitHub's cloud Mac servers
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies and build
+        run: |
+          npm install
+          node scripts/build-desktop.mjs --only darwin || (cd packages/desktop && go build -o ../../cfpilot-mac ./cmd/cfpilot)
+
+      - name: Package into clickable .app
+        run: |
+          mkdir -p CFPilot.app/Contents/MacOS
+          cp cfpilot-mac CFPilot.app/Contents/MacOS/CFPilot || cp dist/*darwin* CFPilot.app/Contents/MacOS/CFPilot
+          chmod +x CFPilot.app/Contents/MacOS/CFPilot
+
+      - name: Upload macOS App
+        uses: actions/upload-artifact@v4
+        with:
+          name: CFPilot-macOS
+          path: CFPilot.app
